@@ -5,9 +5,12 @@ version = "0.19.0"
 authors = ["Jeremy Soller <jeremy@system76.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
-documentation = "https://docs.rs/cosmic-text/latest/cosmic_text/"
-repository = "https://github.com/tessera-ui/cosmic-text"
+documentation = "https://docs.rs/cosmic-text-tessera-fork/latest/cosmic_text/"
+repository = "https://github.com/tessera-ui/cosmic-text-tessera-fork"
 rust-version = "1.89"
+
+[lib]
+name = "cosmic_text"
 
 [dependencies]
 bitflags = "2.10.0"

@@ -2,7 +2,7 @@
 
 use std::sync::OnceLock;
 
-use cosmic_text_tessera_fork::{
+use cosmic_text::{
     Buffer, Cursor, Edit, Metrics, SyntaxEditor, SyntaxSystem, ViEditor,
 };
 

@@ -1,5 +1,5 @@
 use common::DrawTestCfg;
-use cosmic_text_tessera_fork::Attrs;
+use cosmic_text::Attrs;
 use fontdb::Family;
 
 mod common;

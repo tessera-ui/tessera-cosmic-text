@@ -37,7 +37,7 @@ mod platform;
 ///
 /// ```rust
 /// # use unicode_script::Script;
-/// # use cosmic_text_tessera_fork::{Fallback, FontSystem};
+/// # use cosmic_text::{Fallback, FontSystem};
 /// struct MyFallback;
 /// impl Fallback for MyFallback {
 ///     fn common_fallback(&self) -> &[&'static str] {

@@ -1,4 +1,4 @@
-use cosmic_text_tessera_fork as ct;
+use cosmic_text as ct;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 fn load_font_system(c: &mut Criterion) {

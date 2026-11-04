@@ -1,4 +1,4 @@
-use cosmic_text_tessera_fork::{Attrs, Buffer, FontSystem, Metrics, Shaping, Wrap};
+use cosmic_text::{Attrs, Buffer, FontSystem, Metrics, Shaping, Wrap};
 
 // Tests the ability to fallback to glyph wrapping when a word can't fit on a
 // line by itself. No line should ever overflow the buffer size.

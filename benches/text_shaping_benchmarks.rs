@@ -1,5 +1,5 @@
-use cosmic_text_tessera_fork as ct;
-use cosmic_text_tessera_fork::BidiParagraphs;
+use cosmic_text as ct;
+use cosmic_text::BidiParagraphs;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 fn bench_ascii_fast_path(c: &mut Criterion) {

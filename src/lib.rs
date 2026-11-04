@@ -14,7 +14,7 @@
 //! glyphs into either images or pixels.
 //!
 //! ```
-//! use cosmic_text_tessera_fork::{
+//! use cosmic_text::{
 //!     Attrs, Buffer, Color, FontSystem, Metrics, Shaping, SwashCache,
 //! };
 //!
