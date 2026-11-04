@@ -1,12 +1,12 @@
 [package]
-name = "cosmic-text-tessera-fork"
+name = "tessera-cosmic-text"
 description = "Pure Rust multi-line text handling"
 version = "0.19.0"
 authors = ["Jeremy Soller <jeremy@system76.com>"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
-documentation = "https://docs.rs/cosmic-text-tessera-fork/latest/cosmic_text/"
-repository = "https://github.com/tessera-ui/cosmic-text-tessera-fork"
+documentation = "https://docs.rs/tessera-cosmic-text/latest/cosmic_text/"
+repository = "https://github.com/tessera-ui/tessera-cosmic-text"
 rust-version = "1.89"
 
 [lib]

@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]
-cosmic-text = { path = "../../", package = "cosmic-text-tessera-fork" }
+cosmic-text = { path = "../../", package = "tessera-cosmic-text", version = "0.19" }
 env_logger = "0.10"
 fontdb = "0.13"
 log = "0.4"
