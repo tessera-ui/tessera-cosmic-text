@@ -9,7 +9,7 @@ use crate::{math, CacheKey, CacheKeyFlags, Color, GlyphDecorationData, LayoutRun
 use alloc::vec::Vec;
 
 #[cfg(not(feature = "std"))]
-use core_maths::CoreFloat;
+use core_maths::CoreFloat as _;
 
 /// A laid out glyph
 #[derive(Clone, Debug, PartialEq)]
