@@ -4,7 +4,7 @@ use core::fmt::Display;
 
 use core::ops::Range;
 
-use crate::{math, CacheKey, CacheKeyFlags, Color, GlyphDecorationData};
+use crate::{math, CacheKey, CacheKeyFlags, Color, GlyphDecorationData, LayoutRun};
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
@@ -34,28 +34,33 @@ pub struct LayoutGlyph {
     pub y: f32,
     /// Width of hitbox
     pub w: f32,
-    /// Unicode `BiDi` embedding level, character is left-to-right if `level` is
-    /// divisible by 2
+    /// Ascender of the glyph in pixels
+    ///
+    /// This is the distance from the baseline to the top of the glyph
+    pub ascender: f32,
+    /// Descender of the glyph in pixels
+    ///
+    /// This is the distance from the baseline to the bottom of the glyph
+    pub descender: f32,
+    /// Unicode `BiDi` embedding level, character is left-to-right if `level` is divisible by 2
     pub level: unicode_bidi::Level,
     /// X offset in line
     ///
-    /// If you are dealing with physical coordinates, use [`Self::physical`] to
-    /// obtain a [`PhysicalGlyph`] for rendering.
+    /// If you are dealing with physical coordinates, use [`Self::physical`] to obtain a
+    /// [`PhysicalGlyph`] for rendering.
     ///
-    /// This offset is useful when you are dealing with logical units and you do
-    /// not care or cannot guarantee pixel grid alignment. For instance,
-    /// when you want to use the glyphs for vectorial text, apply linear
-    /// transformations to the layout, etc.
+    /// This offset is useful when you are dealing with logical units and you do not care or
+    /// cannot guarantee pixel grid alignment. For instance, when you want to use the glyphs
+    /// for vectorial text, apply linear transformations to the layout, etc.
     pub x_offset: f32,
     /// Y offset in line
     ///
-    /// If you are dealing with physical coordinates, use [`Self::physical`] to
-    /// obtain a [`PhysicalGlyph`] for rendering.
+    /// If you are dealing with physical coordinates, use [`Self::physical`] to obtain a
+    /// [`PhysicalGlyph`] for rendering.
     ///
-    /// This offset is useful when you are dealing with logical units and you do
-    /// not care or cannot guarantee pixel grid alignment. For instance,
-    /// when you want to use the glyphs for vectorial text, apply linear
-    /// transformations to the layout, etc.
+    /// This offset is useful when you are dealing with logical units and you do not care or
+    /// cannot guarantee pixel grid alignment. For instance, when you want to use the glyphs
+    /// for vectorial text, apply linear transformations to the layout, etc.
     pub y_offset: f32,
     /// Optional color override
     pub color_opt: Option<Color>,
@@ -78,6 +83,28 @@ pub struct DecorationSpan {
     pub font_size: f32,
 }
 
+impl DecorationSpan {
+    /// The horizontal extent of this span's glyphs within `run`, which must
+    /// be the layout run containing the span. Empty if the span covers no
+    /// glyphs.
+    pub fn x_range(&self, run: &LayoutRun) -> Range<f32> {
+        // Compute the extent as min/max over all glyphs, not first/last,
+        // because RTL paragraphs store glyphs in right-to-left order.
+        let mut x_min = f32::INFINITY;
+        let mut x_max = f32::NEG_INFINITY;
+        for glyph in &run.glyphs[self.glyph_range.clone()] {
+            x_min = x_min.min(glyph.x);
+            x_max = x_max.max(glyph.x + glyph.w);
+        }
+
+        if x_max > x_min {
+            x_min..x_max
+        } else {
+            0.0..0.0
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct PhysicalGlyph {
     /// Cache key, see [`CacheKey`]
@@ -98,8 +125,8 @@ impl LayoutGlyph {
             self.glyph_id,
             self.font_size * scale,
             (
-                (self.x + x_offset).mul_add(scale, offset.0),
-                math::truncf((self.y - y_offset).mul_add(scale, offset.1)), // Hinting in Y axis
+                (self.x + x_offset) * scale + offset.0,
+                math::truncf((self.y - y_offset) * scale + offset.1), // Hinting in Y axis
             ),
             self.font_weight,
             self.cache_key_flags,
@@ -135,8 +162,7 @@ pub enum Wrap {
     Glyph,
     /// Wraps at the word level
     Word,
-    /// Wraps at the word level, or fallback to glyph level if a word can't fit
-    /// on a line by itself
+    /// Wraps at the word level, or fallback to glyph level if a word can't fit on a line by itself
     WordOrGlyph,
 }
 
@@ -178,26 +204,21 @@ pub enum Ellipsize {
     /// No Ellipsizing
     #[default]
     None,
-    /// Ellipsizes the start of the last visual line that fits within the
-    /// `EllipsizeHeightLimit`
+    /// Ellipsizes the start of the last visual line that fits within the `EllipsizeHeightLimit`
     Start(EllipsizeHeightLimit),
-    /// Ellipsizes the middle of the last visual line that fits within the
-    /// `EllipsizeHeightLimit`.
+    /// Ellipsizes the middle of the last visual line that fits within the `EllipsizeHeightLimit`.
     Middle(EllipsizeHeightLimit),
-    /// Ellipsizes the end of the last visual line that fits within the
-    /// `EllipsizeHeightLimit`.
+    /// Ellipsizes the end of the last visual line that fits within the `EllipsizeHeightLimit`.
     End(EllipsizeHeightLimit),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EllipsizeHeightLimit {
-    /// Number of lines to show before ellipsizing the rest. Only works if
-    /// `Wrap` is NOT set to `Wrap::None`. Otherwise, it will be ignored and
-    /// the behavior will be the same as `Lines(1)`
+    /// Number of lines to show before ellipsizing the rest. Only works if `Wrap` is NOT set to
+    /// `Wrap::None`. Otherwise, it will be ignored and the behavior will be the same as `Lines(1)`
     Lines(usize),
-    /// Ellipsizes the last line that fits within the given height limit. If
-    /// `Wrap` is set to `Wrap::None`, the behavior will be the same as
-    /// `Lines(1)`
+    /// Ellipsizes the last line that fits within the given height limit. If `Wrap` is set to
+    /// `Wrap::None`, the behavior will be the same as `Lines(1)`
     Height(f32),
 }
 
@@ -214,14 +235,12 @@ pub enum Hinting {
 
     /// Metrics hinting.
     ///
-    /// Glyphs will be snapped to integral coordinates in the X-axis during
-    /// layout. This can improve readability for smaller text and/or low-DPI
-    /// screens.
+    /// Glyphs will be snapped to integral coordinates in the X-axis during layout.
+    /// This can improve readability for smaller text and/or low-DPI screens.
     ///
-    /// However, in order to get the right effect, you must use physical
-    /// coordinates during layout and avoid further scaling when rendering.
-    /// Otherwise, the rounding errors can accumulate and glyph distances
-    /// may look erratic.
+    /// However, in order to get the right effect, you must use physical coordinates
+    /// during layout and avoid further scaling when rendering. Otherwise, the rounding
+    /// errors can accumulate and glyph distances may look erratic.
     ///
     /// In other words, metrics hinting makes layouting dependent of the target
     /// resolution.
