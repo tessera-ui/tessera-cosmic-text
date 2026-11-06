@@ -9,7 +9,8 @@ use crate::{math, CacheKey, CacheKeyFlags, Color, GlyphDecorationData, LayoutRun
 use alloc::vec::Vec;
 
 #[cfg(not(feature = "std"))]
-use core_maths::CoreFloat as _;
+#[allow(unused_imports, reason = "Retain float methods for the declared no_std MSRV")]
+use core_maths::CoreFloat;
 
 /// A laid out glyph
 #[derive(Clone, Debug, PartialEq)]

@@ -6,7 +6,8 @@ use alloc::{string::String, vec::Vec};
 use core::{cmp, fmt};
 
 #[cfg(not(feature = "std"))]
-use core_maths::CoreFloat as _;
+#[allow(unused_imports, reason = "Retain float methods for the declared no_std MSRV")]
+use core_maths::CoreFloat;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
