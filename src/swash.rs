@@ -2,7 +2,7 @@
 
 #[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
-#[cfg(feature = "no_std")]
+#[cfg(all(feature = "no_std", not(feature = "std")))]
 use core_maths::CoreFloat;
 
 use core::fmt;
