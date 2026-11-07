@@ -27,22 +27,24 @@ pub struct FontMatchKey {
     pub(crate) font_weight: u16,
     pub(crate) font_stretch: u16,
     pub(crate) id: fontdb::ID,
-    pub(crate) variable_weight_match: bool,
 }
 
 impl FontMatchKey {
     fn new(attrs: &Attrs, face: &FaceInfo, db: &fontdb::Database) -> FontMatchKey {
         // TODO: smarter way of detecting emoji
         let not_emoji = !face.post_script_name.contains("Emoji");
-        let font_weight_diff = attrs.weight.0.abs_diff(face.weight.0);
-
-        let variable_weight_match = font_weight_diff != 0
+        let variable_weight_match = attrs.weight != face.weight
             && db.with_face_data(face.id, |font_data, face_index| {
                 let font_ref = skrifa::FontRef::from_index(font_data, face_index).ok()?;
                 let axis = font_ref.axes().get_by_tag(skrifa::Tag::new(b"wght"))?;
                 let w = attrs.weight.0 as f32;
                 Some(w >= axis.min_value() && w <= axis.max_value())
             }) == Some(Some(true));
+        let font_weight_diff = if variable_weight_match {
+            0
+        } else {
+            attrs.weight.0.abs_diff(face.weight.0)
+        };
         let font_weight = face.weight.0;
         let font_stretch_diff = attrs.stretch.to_number().abs_diff(face.stretch.to_number());
         let font_stretch = face.stretch.to_number();
@@ -65,7 +67,6 @@ impl FontMatchKey {
             font_weight,
             font_stretch,
             id,
-            variable_weight_match,
         }
     }
 }
