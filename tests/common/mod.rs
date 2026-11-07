@@ -191,10 +191,11 @@ impl DrawTestCfg {
         if generate_images {
             pixmap.save_png(reference_image_path).unwrap();
         } else {
-            let reference_image_data = std::fs::read(reference_image_path).unwrap();
-            let image_data = pixmap.encode_png().unwrap();
-            assert_eq!(
-                reference_image_data, image_data,
+            let reference = Pixmap::load_png(reference_image_path).unwrap();
+            assert!(
+                reference.width() == pixmap.width()
+                    && reference.height() == pixmap.height()
+                    && reference.data() == pixmap.data(),
                 "rendering failed of {self:?}"
             )
         }
