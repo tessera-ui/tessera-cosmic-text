@@ -1,6 +1,7 @@
 use cosmic_text as ct;
 use cosmic_text::BidiParagraphs;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
+use std::hint::black_box;
 
 fn bench_ascii_fast_path(c: &mut Criterion) {
     let mut fs = ct::FontSystem::new();
