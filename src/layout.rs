@@ -136,7 +136,7 @@ impl LayoutGlyph {
                 (self.x + x_offset) * scale + offset.0,
                 if self
                     .cache_key_flags
-                    .contains(CacheKeyFlags::DISABLE_HINTING)
+                    .intersects(CacheKeyFlags::DISABLE_HINTING | CacheKeyFlags::NATIVE_RASTER)
                 {
                     (self.y - y_offset) * scale + offset.1
                 } else {
