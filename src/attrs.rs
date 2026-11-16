@@ -295,6 +295,26 @@ pub struct GlyphDecorationData {
     pub ascent: f32,
 }
 
+/// A font size in typographic points, independent of raster scale.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct FontSize(u32);
+
+impl FontSize {
+    /// Creates a finite, positive size.
+    pub fn new(points: f32) -> Self {
+        assert!(
+            points.is_finite() && points > 0.0,
+            "font size must be finite and positive"
+        );
+        Self(points.to_bits())
+    }
+
+    /// Returns the coordinate in typographic points.
+    pub fn points(self) -> f32 {
+        f32::from_bits(self.0)
+    }
+}
+
 /// Text attributes
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Attrs<'a> {
@@ -304,6 +324,10 @@ pub struct Attrs<'a> {
     pub stretch: Stretch,
     pub style: Style,
     pub weight: Weight,
+    /// Optional `opsz` axis coordinate; `None` uses the font's default.
+    pub optical_size: Option<FontSize>,
+    /// Point size for size-dependent tracking; independent of raster scale.
+    pub point_size: Option<FontSize>,
     pub metadata: usize,
     pub cache_key_flags: CacheKeyFlags,
     pub metrics_opt: Option<CacheMetrics>,
@@ -324,6 +348,8 @@ impl<'a> Attrs<'a> {
             stretch: Stretch::Normal,
             style: Style::Normal,
             weight: Weight::NORMAL,
+            optical_size: None,
+            point_size: None,
             metadata: 0,
             cache_key_flags: CacheKeyFlags::empty(),
             metrics_opt: None,
@@ -360,6 +386,18 @@ impl<'a> Attrs<'a> {
     /// Set [Weight]
     pub const fn weight(mut self, weight: Weight) -> Self {
         self.weight = weight;
+        self
+    }
+
+    /// Sets the `opsz` axis coordinate independently of the rasterized font size.
+    pub fn optical_size(mut self, points: f32) -> Self {
+        self.optical_size = Some(FontSize::new(points));
+        self
+    }
+
+    /// Sets the point size used for size-dependent tracking.
+    pub fn point_size(mut self, points: f32) -> Self {
+        self.point_size = Some(FontSize::new(points));
         self
     }
 
@@ -429,6 +467,8 @@ impl<'a> Attrs<'a> {
             && self.stretch == other.stretch
             && self.style == other.style
             && self.weight == other.weight
+            && self.optical_size == other.optical_size
+            && self.point_size == other.point_size
             && self.font_features == other.font_features
     }
 }
@@ -462,6 +502,10 @@ pub struct AttrsOwned {
     pub stretch: Stretch,
     pub style: Style,
     pub weight: Weight,
+    /// Optional `opsz` axis coordinate.
+    pub optical_size: Option<FontSize>,
+    /// Point size for size-dependent tracking.
+    pub point_size: Option<FontSize>,
     pub metadata: usize,
     pub cache_key_flags: CacheKeyFlags,
     pub metrics_opt: Option<CacheMetrics>,
@@ -480,6 +524,8 @@ impl AttrsOwned {
             && self.stretch == other.stretch
             && self.style == other.style
             && self.weight == other.weight
+            && self.optical_size == other.optical_size
+            && self.point_size == other.point_size
             && self.metadata == other.metadata
             && self.cache_key_flags == other.cache_key_flags
             && self.metrics_opt == other.metrics_opt
@@ -494,6 +540,8 @@ impl AttrsOwned {
             stretch: attrs.stretch,
             style: attrs.style,
             weight: attrs.weight,
+            optical_size: attrs.optical_size,
+            point_size: attrs.point_size,
             metadata: attrs.metadata,
             cache_key_flags: attrs.cache_key_flags,
             metrics_opt: attrs.metrics_opt,
@@ -510,6 +558,8 @@ impl AttrsOwned {
             stretch: self.stretch,
             style: self.style,
             weight: self.weight,
+            optical_size: self.optical_size,
+            point_size: self.point_size,
             metadata: self.metadata,
             cache_key_flags: self.cache_key_flags,
             metrics_opt: self.metrics_opt,
