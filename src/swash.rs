@@ -15,11 +15,26 @@ use crate::{CacheKey, CacheKeyFlags, Color, FontSystem, HashMap};
 pub use swash::scale::image::{Content as SwashContent, Image as SwashImage};
 pub use swash::zeno::{Angle, Command, Placement, Transform};
 
+#[cfg(all(target_os = "macos", feature = "std"))]
+#[path = "swash_native.rs"]
+mod native;
+
 fn swash_image(
     font_system: &mut FontSystem,
     context: &mut ScaleContext,
+    #[cfg(all(target_os = "macos", feature = "std"))] native: &mut native::Rasterizer,
     cache_key: CacheKey,
 ) -> Option<SwashImage> {
+    #[cfg(all(target_os = "macos", feature = "std"))]
+    if cache_key.flags.contains(CacheKeyFlags::NATIVE_RASTER)
+        && !cache_key
+            .flags
+            .intersects(CacheKeyFlags::FAKE_ITALIC | CacheKeyFlags::PIXEL_FONT)
+    {
+        if let Some(image) = native.rasterize(font_system, cache_key) {
+            return Some(image);
+        }
+    }
     let Some(font) = font_system.get_font_with_optical_size(
         cache_key.font_id,
         cache_key.font_weight,
@@ -143,6 +158,8 @@ fn swash_outline_commands(
 /// Cache for rasterizing with the swash scaler
 pub struct SwashCache {
     context: ScaleContext,
+    #[cfg(all(target_os = "macos", feature = "std"))]
+    native: native::Rasterizer,
     pub image_cache: HashMap<CacheKey, Option<SwashImage>>,
     pub outline_command_cache: HashMap<CacheKey, Option<Box<[swash::zeno::Command]>>>,
 }
@@ -158,6 +175,8 @@ impl SwashCache {
     pub fn new() -> Self {
         Self {
             context: ScaleContext::new(),
+            #[cfg(all(target_os = "macos", feature = "std"))]
+            native: native::Rasterizer::default(),
             image_cache: HashMap::default(),
             outline_command_cache: HashMap::default(),
         }
@@ -169,7 +188,13 @@ impl SwashCache {
         font_system: &mut FontSystem,
         cache_key: CacheKey,
     ) -> Option<SwashImage> {
-        swash_image(font_system, &mut self.context, cache_key)
+        swash_image(
+            font_system,
+            &mut self.context,
+            #[cfg(all(target_os = "macos", feature = "std"))]
+            &mut self.native,
+            cache_key,
+        )
     }
 
     /// Create a swash Image from a cache key, caching results
@@ -178,9 +203,15 @@ impl SwashCache {
         font_system: &mut FontSystem,
         cache_key: CacheKey,
     ) -> &Option<SwashImage> {
-        self.image_cache
-            .entry(cache_key)
-            .or_insert_with(|| swash_image(font_system, &mut self.context, cache_key))
+        self.image_cache.entry(cache_key).or_insert_with(|| {
+            swash_image(
+                font_system,
+                &mut self.context,
+                #[cfg(all(target_os = "macos", feature = "std"))]
+                &mut self.native,
+                cache_key,
+            )
+        })
     }
 
     /// Creates outline commands

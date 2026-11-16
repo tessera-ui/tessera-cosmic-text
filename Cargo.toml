@@ -36,6 +36,11 @@ unicode-linebreak = "0.1.5"
 unicode-script = "0.5.9"
 unicode-segmentation = "1.13.3"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10.1"
+core-graphics = "0.24.0"
+core-text = "21.0.0"
+
 [dependencies.swash]
 version = "0.2.10"
 default-features = false

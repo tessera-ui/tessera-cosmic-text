@@ -11,6 +11,8 @@ bitflags::bitflags! {
         const DISABLE_HINTING = 2;
         /// Render as a pixel font
         const PIXEL_FONT = 4;
+        /// Use the platform text rasterizer where supported.
+        const NATIVE_RASTER = 8;
     }
 }
 
@@ -46,8 +48,13 @@ impl CacheKey {
         weight: fontdb::Weight,
         flags: CacheKeyFlags,
     ) -> (Self, i32, i32) {
-        let (x, x_bin) = SubpixelBin::new(pos.0);
-        let (y, y_bin) = SubpixelBin::new(pos.1);
+        let bin = if flags.contains(CacheKeyFlags::NATIVE_RASTER) {
+            SubpixelBin::new_precise
+        } else {
+            SubpixelBin::new
+        };
+        let (x, x_bin) = bin(pos.0);
+        let (y, y_bin) = bin(pos.1);
         (
             Self {
                 font_id,
@@ -73,9 +80,24 @@ pub enum SubpixelBin {
     One,
     Two,
     Three,
+    /// A fractional offset in sixty-fourths of a pixel.
+    Fine(u8),
 }
 
 impl SubpixelBin {
+    fn new_precise(pos: f32) -> (i32, Self) {
+        let floor = crate::math::floorf(pos);
+        let fraction = crate::math::roundf((pos - floor) * 64.0) as u8;
+        match fraction {
+            0 => (floor as i32, Self::Zero),
+            16 => (floor as i32, Self::One),
+            32 => (floor as i32, Self::Two),
+            48 => (floor as i32, Self::Three),
+            64 => (floor as i32 + 1, Self::Zero),
+            value => (floor as i32, Self::Fine(value)),
+        }
+    }
+
     pub fn new(pos: f32) -> (i32, Self) {
         let trunc = pos as i32;
         let fract = pos - trunc as f32;
@@ -114,6 +136,37 @@ impl SubpixelBin {
             Self::One => 0.25,
             Self::Two => 0.5,
             Self::Three => 0.75,
+            Self::Fine(value) => *value as f32 / 64.0,
+        }
+    }
+}
+
+#[test]
+fn native_cache_keys_preserve_fine_positions_without_changing_portable_bins() {
+    for (position, native, portable) in [
+        (0.1, 0.09375, 0.0),
+        (0.9, 0.90625, 1.0),
+        (-0.1, -0.09375, 0.0),
+        (-0.9, -0.90625, -1.0),
+        (1.999, 2.0, 2.0),
+    ] {
+        let build = |flags| {
+            CacheKey::new(
+                fontdb::ID::dummy(),
+                0,
+                13.0,
+                (position, position),
+                fontdb::Weight::NORMAL,
+                flags,
+            )
+        };
+        for (flags, expected) in [
+            (CacheKeyFlags::NATIVE_RASTER, native),
+            (CacheKeyFlags::empty(), portable),
+        ] {
+            let (key, x, y) = build(flags);
+            assert_eq!(x as f32 + key.x_bin.as_float(), expected);
+            assert_eq!(y as f32 + key.y_bin.as_float(), expected);
         }
     }
 }
