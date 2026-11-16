@@ -13,6 +13,8 @@ bitflags::bitflags! {
         const PIXEL_FONT = 4;
         /// Use the platform text rasterizer where supported.
         const NATIVE_RASTER = 8;
+        /// Rasterize native coverage for light text on a dark background.
+        const NATIVE_LIGHT_INK = 16;
     }
 }
 

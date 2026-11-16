@@ -141,12 +141,15 @@ impl Rasterizer {
             &space,
             kCGImageAlphaPremultipliedLast,
         );
-        context.set_rgb_fill_color(1.0, 1.0, 1.0, 1.0);
+        let light = key.flags.contains(crate::CacheKeyFlags::NATIVE_LIGHT_INK);
+        let background = if light { 0.0 } else { 1.0 };
+        let foreground = 1.0 - background;
+        context.set_rgb_fill_color(background, background, background, 1.0);
         context.fill_rect(CGRect::new(
             &CGPoint::new(0.0, 0.0),
             &CGSize::new(width as f64, height as f64),
         ));
-        context.set_rgb_fill_color(0.0, 0.0, 0.0, 1.0);
+        context.set_rgb_fill_color(foreground, foreground, foreground, 1.0);
         context.set_allows_antialiasing(true);
         context.set_should_antialias(true);
         context.set_allows_font_smoothing(true);
@@ -167,7 +170,7 @@ impl Rasterizer {
         let data = context
             .data()
             .chunks_exact(4)
-            .map(|pixel| 255 - pixel[0])
+            .map(|pixel| if light { pixel[0] } else { 255 - pixel[0] })
             .collect();
         Some(SwashImage {
             source: swash::scale::Source::Outline,
@@ -227,6 +230,11 @@ mod tests {
         shifted.x_bin = crate::SubpixelBin::Three;
         let shifted = cache.get_image_uncached(&mut fonts, shifted).unwrap();
         assert_ne!(native.data, shifted.data);
+        let mut light = key;
+        light.flags |= crate::CacheKeyFlags::NATIVE_LIGHT_INK;
+        let light = cache.get_image_uncached(&mut fonts, light).unwrap();
+        assert!(light.data.iter().any(|value| *value != 0));
+        assert_ne!(native.data, light.data);
         let mut portable = key;
         portable.flags = crate::CacheKeyFlags::empty();
         let portable = cache.get_image_uncached(&mut fonts, portable).unwrap();
