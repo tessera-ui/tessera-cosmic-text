@@ -9,7 +9,10 @@ use crate::{math, CacheKey, CacheKeyFlags, Color, GlyphDecorationData, LayoutRun
 use alloc::vec::Vec;
 
 #[cfg(not(feature = "std"))]
-#[allow(unused_imports, reason = "Retain float methods for the declared no_std MSRV")]
+#[allow(
+    unused_imports,
+    reason = "Retain float methods for the declared no_std MSRV"
+)]
 use core_maths::CoreFloat;
 
 /// A laid out glyph
@@ -23,6 +26,10 @@ pub struct LayoutGlyph {
     pub font_size: f32,
     /// Font weight of the glyph
     pub font_weight: fontdb::Weight,
+    /// Optical size, independent of raster scale.
+    pub optical_size: Option<crate::FontSize>,
+    /// Point size, independent of raster scale.
+    pub point_size: Option<crate::FontSize>,
     /// Line height of the glyph, will override buffer setting
     pub line_height_opt: Option<f32>,
     /// Font id of the glyph
@@ -121,18 +128,27 @@ impl LayoutGlyph {
         let x_offset = self.font_size * self.x_offset;
         let y_offset = self.font_size * self.y_offset;
 
-        let (cache_key, x, y) = CacheKey::new(
+        let (mut cache_key, x, y) = CacheKey::new(
             self.font_id,
             self.glyph_id,
             self.font_size * scale,
             (
                 (self.x + x_offset) * scale + offset.0,
-                math::truncf((self.y - y_offset) * scale + offset.1), // Hinting in Y axis
+                if self
+                    .cache_key_flags
+                    .contains(CacheKeyFlags::DISABLE_HINTING)
+                {
+                    (self.y - y_offset) * scale + offset.1
+                } else {
+                    math::truncf((self.y - y_offset) * scale + offset.1)
+                },
             ),
             self.font_weight,
             self.cache_key_flags,
         );
 
+        cache_key.optical_size = self.optical_size;
+        cache_key.point_size = self.point_size;
         PhysicalGlyph { cache_key, x, y }
     }
 }

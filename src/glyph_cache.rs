@@ -29,6 +29,10 @@ pub struct CacheKey {
     pub y_bin: SubpixelBin,
     /// Font weight
     pub font_weight: fontdb::Weight,
+    /// Optical size, independent of raster scale.
+    pub optical_size: Option<crate::FontSize>,
+    /// Point size used by the platform rasterizer, independent of raster scale.
+    pub point_size: Option<crate::FontSize>,
     /// [`CacheKeyFlags`]
     pub flags: CacheKeyFlags,
 }
@@ -53,6 +57,8 @@ impl CacheKey {
                 y_bin,
                 flags,
                 font_weight: weight,
+                optical_size: None,
+                point_size: None,
             },
             x,
             y,
